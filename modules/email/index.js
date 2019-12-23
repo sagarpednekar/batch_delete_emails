@@ -10,12 +10,16 @@ const SCOPES = ["https://mail.google.com/"];
 const TOKEN_PATH = "token.json";
 
 // Load client secrets from a local file.
+let pageToken = "";
+let emails = [];
 fs.readFile("credentials.json", (err, content) => {
-   if (err) return console.log("Error loading client secret file:", err);
-   // Authorize a client with credentials, then call the Gmail API.
-   //   authorize(JSON.parse(content), listLabels);
-   authorize(JSON.parse(content), readEmails);
-   //  authorize(JSON.parse(content), deleteEmailById);
+   setInterval(() => {
+      if (err) return console.log("Error loading client secret file:", err);
+      // Authorize a client with credentials, then call the Gmail API.
+      //   authorize(JSON.parse(content), listLabels);
+      authorize(JSON.parse(content), readEmails);
+      //  authorize(JSON.parse(content), deleteEmailById);
+   }, 2000);
 });
 
 /**
@@ -35,7 +39,7 @@ function authorize(credentials, callback) {
    // Check if we have previously stored a token.
    fs.readFile(TOKEN_PATH, (err, token) => {
       if (err) return getNewToken(oAuth2Client, callback);
-      console.log(JSON.parse(token));
+      // console.log(JSON.parse(token));
       oAuth2Client.setCredentials(JSON.parse(token));
       callback(oAuth2Client);
    });
@@ -65,7 +69,7 @@ function getNewToken(oAuth2Client, callback) {
          // Store the token to disk for later program executions
          fs.writeFile(TOKEN_PATH, JSON.stringify(token), err => {
             if (err) return console.error(err);
-            console.log("Token stored to", TOKEN_PATH);
+            // console.log("Token stored to", TOKEN_PATH);
          });
          callback(oAuth2Client);
       });
@@ -100,36 +104,50 @@ function listLabels(auth) {
 
 function readEmails(auth) {
    const gmail = google.gmail({ version: "v1", auth });
-   gmail.users.messages.list(
-      {
-         userId: "me",
-         maxResults: 50
-      },
-      (err, res) => {
-         //   if (err) console.log(err);
-         //   console.log("--->", res.data.messages);
-         const messages =
-            res && res.data && res.data.messages ? res.data.messages : [];
-         if (messages.length > 0) {
-            const response = new Promise((resolve, reject) => {
-               resolve(
-                  messages.map((message, index) =>
-                     readEmail(message.id, index, auth)
-                  )
-               );
-            }).then(async array => {
-               console.log("Count", array.length);
-               Promise.all(array)
-                  .then(item => {
-                     console.log("Item", item);
-                  })
-                  .catch(err => {
-                     console.log(err);
-                  });
-            });
-         }
+   console.log("Next Page Token", pageToken);
+   const reqObject = {
+      userId: "me",
+      maxResults: 50
+   };
+   if (pageToken) {
+      reqObject.pageToken = pageToken;
+   }
+   gmail.users.messages.list(reqObject, (err, res) => {
+      if (err) console.log(err);
+      // console.log("--->", res.data);
+      if (res.data && res.data.nextPageToken) {
+         pageToken = res.data.nextPageToken;
+         // pageTokens.push(res.data.nextPageToken);
+         // console.log(pageToken);
       }
-   );
+
+      const messages =
+         res && res.data && res.data.messages ? res.data.messages : [];
+      if (messages.length > 0) {
+         const response = new Promise((resolve, reject) => {
+            resolve(
+               messages.map((message, index) =>
+                  readEmail(message.id, index, auth)
+               )
+            );
+         }).then(async array => {
+            console.log("Count", array.length);
+            Promise.all(array)
+               .then(item => {
+                  // console.log("Item", item);
+                  // emails.push(item);
+                  emails = [...emails, ...item];
+
+                  console.log("====================================");
+                  console.log(emails.length);
+                  console.log("====================================");
+               })
+               .catch(err => {
+                  console.log(err);
+               });
+         });
+      }
+   });
 }
 
 function readEmail(messageId, index, auth) {

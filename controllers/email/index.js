@@ -18,7 +18,7 @@ module.exports = google => {
                   res.data.payload &&
                   res.data.payload.headers
                ) {
-                  console.log("Reading ...." + index, res.data.snippet);
+                  // console.log("Reading ...." + index, res.data.snippet);
                   // console.log("Reading ... " + index, res.data.payload.headers);
                   res.data.payload.headers.map((header, index) => {
                      // console.log("Message ID", messageId);
@@ -47,40 +47,43 @@ module.exports = google => {
       }
    };
 
-   const readEmails = () => {
-      return new Promise((resolve, reject) => {
-         gmail.users.messages.list(
-            {
-               userId: "me",
-               maxResults: 10
-            },
-            (err, res) => {
-               //   if (err) console.log(err);
-               //   console.log("--->", res.data.messages);
-               const messages =
-                  res && res.data && res.data.messages ? res.data.messages : [];
-               if (messages.length > 0) {
-                  const response = new Promise((resolve, reject) => {
-                     resolve(
-                        messages.map((message, index) =>
-                           readEmail(message.id, index)
-                        )
-                     );
-                  }).then(array => {
-                     console.log("Count", array.length);
-                     return Promise.all(array);
-                     //  .then(item => {
-                     //     console.log("Item", item);
-                     //  })
-                     //  .catch(err => {
-                     //     console.log(err);
-                     //  });
-                  });
+   const readEmails = async (resultCount, pageToken) => {
+      const result = await gmail.users.getProfile({
+         userId: "me"
+      });
 
-                  return resolve(response);
-               }
+      return new Promise((resolve, reject) => {
+         const reqObject = {
+            userId: "me",
+            maxResults: resultCount
+         };
+         if (pageToken) {
+            reqObject.pageToken = pageToken;
+         }
+         gmail.users.messages.list(reqObject, (err, res) => {
+            //   if (err) console.log(err);
+            const messages =
+               res && res.data && res.data.messages ? res.data.messages : [];
+            if (messages.length > 0) {
+               const response = new Promise((resolve, reject) => {
+                  resolve(
+                     messages.map((message, index) =>
+                        readEmail(message.id, index)
+                     )
+                  );
+               }).then(emails => {
+                  return Promise.all(emails);
+               });
+               // console.log(response);
+               return resolve({
+                  response,
+                  totalCount: result.data.messagesTotal,
+                  pageToken: res.data.nextPageToken
+                     ? res.data.nextPageToken
+                     : ""
+               });
             }
-         );
+         });
       });
    };
 

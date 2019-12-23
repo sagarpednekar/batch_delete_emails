@@ -79,16 +79,18 @@ app.get("/", (req, res) => {
    }
 });
 
-app.get("/list", (req, res) => {
-   const mails = readEmails();
-   mails.then(response => {
+app.get("/list", async (req, res) => {
+   const resultCount = req.query.results ? req.query.results : 10;
+   const pageToken = req.query.pageToken ? req.query.pageToken : "";
+   const emails = await readEmails(resultCount, pageToken);
+
+   emails.response.then(response => {
       if (response) {
-         res.json(response);
+         res.json({ ...emails, response });
       } else {
          res.json([]);
       }
    });
-   //  console.log("Mails ", mails);
 });
 
 app.delete("/delete/email/:id", (req, res) => {
