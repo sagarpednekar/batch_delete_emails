@@ -5,7 +5,7 @@ function authorization(access_token, refresh_token) {
    const oAuth2Client = new google.auth.OAuth2(
       process.env.client_id,
       process.env.client_secret,
-      "http://localhost"
+      process.env.redirect_uris
    );
    oAuth2Client.setCredentials({
       access_token,
