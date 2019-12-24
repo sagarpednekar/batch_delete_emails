@@ -138,9 +138,7 @@ function readEmails(auth) {
                   // emails.push(item);
                   emails = [...emails, ...item];
 
-                  console.log("====================================");
-                  console.log(emails.length);
-                  console.log("====================================");
+            
                })
                .catch(err => {
                   console.log(err);

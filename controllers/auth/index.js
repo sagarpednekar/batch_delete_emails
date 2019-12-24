@@ -1,9 +1,10 @@
 const { google } = require("googleapis");
+require("dotenv").config()
 
 function authorization(access_token, refresh_token) {
    const oAuth2Client = new google.auth.OAuth2(
-      "844957387775-n1co1m16j72jnh9gbusru3jj3rcrti0n.apps.googleusercontent.com",
-      "tR2VCX9Tb0bvQWg0ZUDZnGEc",
+      process.env.client_id,
+      process.env.client_secret,
       "http://localhost"
    );
    oAuth2Client.setCredentials({
